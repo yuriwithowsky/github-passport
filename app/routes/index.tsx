@@ -6,7 +6,7 @@ import {
 } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
 import axios from "axios";
-import fetch from "node-fetch";
+
 type User = {
   login: string;
   avatar_url: string;
@@ -43,7 +43,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   console.log("entra aqui");
-  const redirect_url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_url=http://localhost:3000/&scope=user`;
+  const redirect_url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_url=${process.env.GITHUB_REDIRECT_URL}&scope=user`;
 
   return redirect(redirect_url);
 };
