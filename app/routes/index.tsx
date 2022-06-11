@@ -1,11 +1,6 @@
-import {
-  ActionFunction,
-  json,
-  LoaderFunction,
-  redirect,
-} from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
-import axios from "axios";
+import { json, LoaderFunction, redirect } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { getSession } from "~/sessions";
 
 type User = {
   login: string;
@@ -18,47 +13,27 @@ type LoaderData = {
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
+  var session = await getSession(request.headers.get("Cookie"));
+  const token = session.get("access_token");
 
-  if (code == null) return {};
-
-  const body = {
-    client_id: process.env.GITHUB_CLIENT_ID,
-    client_secret: process.env.GITHUB_CLIENT_SECRET,
-    code: code,
-  };
-
-  const response = await axios.post(
-    "https://github.com/login/oauth/access_token",
-    body,
-    { headers: { Accept: "application/json" } }
-  );
-
-  const { data } = await axios.get("https://api.github.com/user", {
-    headers: { Authorization: `token ${response.data.access_token}` },
+  const res = await fetch("https://api.github.com/user", {
+    method: "GET",
+    headers: { Authorization: `token ${token}` },
   });
-  return json<LoaderData>({ user: data });
-};
 
-export const action: ActionFunction = async ({ request }) => {
-  console.log("entra aqui");
-  const redirect_url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_url=${process.env.GITHUB_REDIRECT_URL}&scope=user`;
+  if (res.status === 401) return redirect("/login");
 
-  return redirect(redirect_url);
+  const user = await res.json();
+
+  return json<LoaderData>({ user });
 };
 
 export default function Index() {
   const { user } = useLoaderData<LoaderData>();
-  if (!user)
-    return (
-      <Form method="post">
-        <button type="submit">Entre com sua conta GitHub</button>
-      </Form>
-    );
+
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.4" }}>
-      <h1>Welcome to Remix</h1>
+      <h1>Welcome, {user.name}!</h1>
       <h2>{user.name}</h2>
       <span>{user.login}</span>
       <img src={user.avatar_url} />
